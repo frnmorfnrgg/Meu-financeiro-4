@@ -18,6 +18,10 @@
         #auth-screen { position: fixed; inset: 0; background: #000; z-index: 10001; display: flex; align-items: center; justify-content: center; }
         .auth-card { background: #111; padding: 30px; border-radius: 30px; width: 90%; max-width: 380px; text-align: center; border: 1px solid #222; }
         .auth-card input { width: 100%; padding: 15px; margin: 10px 0; border-radius: 12px; border: 1px solid #333; background: #000; color: white; outline: none; }
+        
+        /* ESTA CLASSE DISFARÇA O CAMPO DE TEXTO COMO SENHA */
+        .input-mask { -webkit-text-security: disc; text-security: disc; }
+
         .btn-auth { width: 100%; padding: 18px; border-radius: 12px; border: none; background: var(--neon); color: #000; font-weight: bold; cursor: pointer; }
 
         #app-content { display: none; }
@@ -56,9 +60,9 @@
 <div id="auth-screen">
     <div class="auth-card">
         <h1 style="color: var(--neon); margin-bottom: 20px;">Finance PRO</h1>
-        <input type="text" id="auth-user" placeholder="Usuário" required>
-        <input type="password" id="auth-pass" placeholder="Senha" required>
-        <button class="btn-auth" onclick="handleAuth()">ENTRAR</button>
+        <input type="text" id="auth-user" placeholder="ID de Usuário" required>
+        <input type="text" id="auth-pass" class="input-mask" placeholder="Chave de Acesso" required>
+        <button class="btn-auth" onclick="handleAuth()">ENTRAR NO PAINEL</button>
     </div>
 </div>
 
@@ -160,6 +164,7 @@
 
 <script>
     // --- FIREBASE CONFIG ---
+    // LEMBRE-SE DE COLOCAR SEUS DADOS AQUI
     const firebaseConfig = {
         apiKey: "SUA_API_KEY",
         authDomain: "SEU_PROJETO.firebaseapp.com",
@@ -218,12 +223,8 @@
 
             if(capital > 0 && n > 0) {
                 const lucroPuro = capital * (tx/100) * n;
-                
-                // Trata a data: Se vazio, usa HOJE.
                 let dataReferencia = dataInput ? new Date(dataInput + 'T12:00:00') : new Date();
-                
                 let dataInvest = formatDate(dataReferencia);
-                
                 let dataRecebeObj = new Date(dataReferencia);
                 dataRecebeObj.setDate(dataRecebeObj.getDate() + n);
                 let dataRecebeStr = formatDate(dataRecebeObj);
@@ -247,16 +248,13 @@
     function update() {
         const f = (v) => v.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
         const totalInvestido = historicoInvest.reduce((acc, i) => acc + i.investido, 0);
-        
         document.getElementById('display-cofre').innerText = f(cofreGeral);
         document.getElementById('display-video-resumo').innerText = f(ganhoVideos);
         document.getElementById('display-invest-resumo').innerText = f(totalInvestido);
-        
         const qA = parseInt(document.getElementById('q-a').value) || 0;
         const qB = parseInt(document.getElementById('q-b').value) || 0;
         const qC = parseInt(document.getElementById('q-c').value) || 0;
         document.getElementById('display-pessoas').innerText = qA + qB + qC;
-        
         localStorage.setItem('equipe_a', qA); localStorage.setItem('equipe_b', qB); localStorage.setItem('equipe_c', qC);
     }
 
@@ -324,4 +322,4 @@
     }
 </script>
 </body>
-    </html>
+</html>
