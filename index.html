@@ -31,10 +31,19 @@
 
         .input-box { background: #1a1a1a; padding: 12px; border-radius: 12px; border: 1px solid #333; margin-bottom: 10px; }
         .input-box label { display: block; font-size: 0.6rem; color: #888; margin-bottom: 5px; }
-        .input-box input { width: 100%; background: transparent; border: none; color: white; font-size: 1.2rem; outline: none; font-weight: bold; }
+        .input-box input { width: 100%; background: transparent; border: none; color: white; font-size: 1.1rem; outline: none; font-weight: bold; }
+        .input-box input[type="date"] { color-scheme: dark; font-size: 0.9rem; }
 
         .btn-save { width: 100%; background: var(--neon); color: #000; border: none; padding: 15px; border-radius: 12px; font-weight: bold; font-size: 0.9rem; cursor: pointer; margin-top: 10px; transition: 0.2s; }
         .btn-save:active { transform: scale(0.98); opacity: 0.8; }
+
+        .history-list { margin-top: 15px; border-top: 1px solid #222; padding-top: 15px; }
+        .history-item { background: #1a1a1a; padding: 12px; border-radius: 12px; margin-bottom: 10px; font-size: 0.75rem; border: 1px solid #333; position: relative; line-height: 1.4; }
+        .history-item b { color: var(--blue); }
+        .history-item .lucro-h { color: var(--neon); font-weight: bold; }
+        .history-item .date-info { display: block; margin-top: 6px; color: #ccc; font-size: 0.7rem; }
+        .history-item .weekday { color: #888; font-style: italic; font-size: 0.65rem; }
+        .btn-del { position: absolute; right: 10px; top: 10px; background: none; border: none; color: var(--red); font-weight: bold; cursor: pointer; padding: 5px; }
 
         .prediction { background: #001529; padding: 10px; border-radius: 10px; margin-top: 10px; border: 1px solid var(--blue); font-size: 0.8rem; }
 
@@ -91,23 +100,38 @@
 
     <div id="page-invest" class="page">
         <div class="card border-invest">
-            <span class="label">Simulador e Ativação</span>
-            <div class="input-box"><label>VALOR PARA INVESTIR</label><input type="number" id="v-p" value="0" oninput="update()"></div>
+            <span class="label">Novo Investimento</span>
+            
+            <div class="input-box">
+                <label>DATA DE INÍCIO</label>
+                <input type="date" id="inv-data">
+            </div>
+
+            <div class="input-box">
+                <label>VALOR PARA INVESTIR</label>
+                <input type="number" id="v-p" value="0" oninput="update()">
+            </div>
+            
             <div class="row">
                 <div class="input-box"><label>TAXA DIA (%)</label><input type="number" id="v-i" value="0" oninput="update()"></div>
                 <div class="input-box"><label>PRAZO (DIAS)</label><input type="number" id="v-n" value="0" oninput="update()"></div>
             </div>
 
             <div class="prediction">
-                <b>Finaliza em:</b><br>
-                <span id="pred-data" style="color: var(--blue);">Selecione os dias</span>
+                <b>Data de Término prevista:</b><br>
+                <span id="pred-data" style="color: var(--blue);">Informe data e prazo</span>
             </div>
 
             <div style="text-align: center; margin: 15px 0;">
                 <div id="res-total" style="font-size: 1.8rem; font-weight: bold;">R$ 0,00</div>
                 <div id="res-lucro" style="color: var(--neon); font-size: 0.9rem; font-weight: bold;">Lucro Previsto: R$ 0,00</div>
             </div>
-            <button class="btn-save" style="background: var(--blue); color: white;" onclick="saveToCofre('invest')">Ativar Investimento e Salvar Lucro</button>
+            <button class="btn-save" style="background: var(--blue); color: white;" onclick="saveToCofre('invest')">Ativar e Salvar no Histórico</button>
+
+            <div class="history-list" id="history-container">
+                <span class="label">Histórico de Ativos</span>
+                <div id="history-items"></div>
+            </div>
         </div>
     </div>
 
@@ -130,9 +154,19 @@
 </nav>
 
 <script>
-    // Variáveis Globais
     let cofre = parseFloat(localStorage.getItem('cofre_total')) || 0;
-    let valorInvestidoAtivo = parseFloat(localStorage.getItem('invest_ativo')) || 0;
+    let historicoInvest = JSON.parse(localStorage.getItem('historico_invest')) || [];
+
+    const diasSemana = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
+
+    // Função robusta para extrair o dia da semana sem erros de fuso horário
+    function getNomeDia(dateStr) {
+        if(!dateStr) return "N/A";
+        const partes = dateStr.split('-');
+        if(partes.length !== 3) return "Data Inválida";
+        const d = new Date(partes[0], partes[1] - 1, partes[2]);
+        return diasSemana[d.getDay()];
+    }
 
     function tab(id, el) {
         document.querySelectorAll('.page, .nav-item').forEach(x => x.classList.remove('active'));
@@ -141,87 +175,136 @@
     }
 
     function update() {
-        // Cálculo Vídeos
+        const f = (v) => v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
         const vQtd = parseFloat(document.getElementById('vid-qtd').value) || 0;
         const vVal = parseFloat(document.getElementById('vid-val').value) || 0;
         const totalVideo = vQtd * vVal;
 
-        // Cálculo Investimento (Simulação)
         const pInput = parseFloat(document.getElementById('v-p').value) || 0;
         const i = parseFloat(document.getElementById('v-i').value) / 100 || 0;
         const n = parseInt(document.getElementById('v-n').value) || 0;
         const montante = pInput * (1 + (i * n));
 
-        // Previsão de Dias
-        if (n > 0) {
-            const futura = new Date();
+        const inputData = document.getElementById('inv-data').value;
+        if (n > 0 && inputData) {
+            const partes = inputData.split('-');
+            const futura = new Date(partes[0], partes[1] - 1, partes[2]);
             futura.setDate(futura.getDate() + n);
-            const diasSemana = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
             document.getElementById('pred-data').innerHTML = `${futura.toLocaleDateString('pt-BR')} (${diasSemana[futura.getDay()]})`;
         } else {
-            document.getElementById('pred-data').innerText = "Informe o prazo";
+            document.getElementById('pred-data').innerText = "Informe data e prazo";
         }
 
-        // Equipes
-        const qa = parseInt(document.getElementById('q-a').value) || 0;
-        const qb = parseInt(document.getElementById('q-b').value) || 0;
-        const qc = parseInt(document.getElementById('q-c').value) || 0;
+        const totalHistorico = historicoInvest.reduce((acc, item) => acc + (item.valor || 0), 0);
 
-        const f = (v) => v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        
-        // Atualizar Displays
         document.getElementById('display-cofre').innerText = f(cofre);
         document.getElementById('vid-total-calc').innerText = f(totalVideo);
         document.getElementById('display-video-resumo').innerText = f(totalVideo);
+        document.getElementById('display-invest-resumo').innerText = f(totalHistorico);
         
-        // AQUI: Exibe o valor que foi efetivamente salvo como ativo
-        document.getElementById('display-invest-resumo').innerText = f(valorInvestidoAtivo);
-        
-        document.getElementById('display-pessoas').innerText = qa + qb + qc;
+        document.getElementById('display-pessoas').innerText = 
+            (parseInt(document.getElementById('q-a').value) || 0) + 
+            (parseInt(document.getElementById('q-b').value) || 0) + 
+            (parseInt(document.getElementById('q-c').value) || 0);
+
         document.getElementById('res-total').innerText = "R$ " + f(montante);
         document.getElementById('res-lucro').innerText = "Lucro Previsto: R$ " + f(montante - pInput);
 
-        // Salvar inputs para não perder ao recarregar
-        localStorage.setItem('fin_v_save', JSON.stringify({vQtd, vVal, pInput, vi:i*100, n, qa, qb, qc}));
+        localStorage.setItem('fin_v_save', JSON.stringify({
+            vQtd, vVal, pInput, vi:i*100, n, 
+            qa: parseInt(document.getElementById('q-a').value)||0, 
+            qb: parseInt(document.getElementById('q-b').value)||0, 
+            qc: parseInt(document.getElementById('q-c').value)||0
+        }));
+
+        renderHistorico();
+    }
+
+    function renderHistorico() {
+        const container = document.getElementById('history-items');
+        const f = (v) => v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        container.innerHTML = "";
+
+        historicoInvest.forEach((item, index) => {
+            const div = document.createElement('div');
+            div.className = 'history-item';
+            
+            // Garantia para itens antigos ou sem o dia salvo
+            const diaSemanaInicio = getNomeDia(item.dataInicio);
+            const dataInicioFmt = item.dataInicio ? item.dataInicio.split('-').reverse().join('/') : "---";
+
+            div.innerHTML = `
+                <button class="btn-del" onclick="removerInvest(${index})">✕</button>
+                <b>Valor:</b> R$ ${f(item.valor)} | <b>Lucro:</b> <span class="lucro-h">R$ ${f(item.lucro)}</span>
+                <span class="date-info">
+                    Início: ${dataInicioFmt} <span class="weekday">(${diaSemanaInicio})</span><br>
+                    Término: <span style="color:var(--blue)">${item.dataFim}</span> <span class="weekday">(${item.diaSemanaFim || 'N/A'})</span>
+                </span>
+                <small style="color:#666">${item.taxa}%/dia por ${item.prazo} dias</small>
+            `;
+            container.appendChild(div);
+        });
     }
 
     function saveToCofre(tipo) {
         if (tipo === 'video') {
             const vQtd = parseFloat(document.getElementById('vid-qtd').value) || 0;
             const vVal = parseFloat(document.getElementById('vid-val').value) || 0;
+            if((vQtd*vVal) <= 0) return;
             cofre += (vQtd * vVal);
             document.getElementById('vid-qtd').value = 0;
-            alert("Ganhos de vídeo adicionados ao cofre!");
+            alert("Ganhos de vídeo adicionados!");
         } 
         else if (tipo === 'invest') {
+            const dataInv = document.getElementById('inv-data').value;
             const pInput = parseFloat(document.getElementById('v-p').value) || 0;
-            const i = parseFloat(document.getElementById('v-i').value) / 100 || 0;
-            const n = parseInt(document.getElementById('v-n').value) || 0;
-            
-            if(pInput <= 0) {
-                alert("Insira um valor para investir!");
+            const taxaInput = parseFloat(document.getElementById('v-i').value) || 0;
+            const prazoInput = parseInt(document.getElementById('v-n').value) || 0;
+
+            if(pInput <= 0 || !dataInv || prazoInput <= 0) {
+                alert("Preencha todos os dados corretamente!");
                 return;
             }
 
-            const lucro = (pInput * (1 + (i * n))) - pInput;
+            const lucro = (pInput * (taxaInput / 100) * prazoInput);
             
-            // 1. O valor principal vai para "Em Investimento"
-            valorInvestidoAtivo = pInput; 
-            // 2. O lucro vai para o Saldo Acumulado
-            cofre += lucro; 
+            // Cálculo da data de término
+            const partes = dataInv.split('-');
+            const dFim = new Date(partes[0], partes[1] - 1, partes[2]);
+            dFim.setDate(dFim.getDate() + prazoInput);
 
-            localStorage.setItem('invest_ativo', valorInvestidoAtivo);
-            alert("Investimento Ativado! O lucro foi para o Saldo Acumulado.");
+            historicoInvest.push({ 
+                dataInicio: dataInv, 
+                dataFim: dFim.toLocaleDateString('pt-BR'),
+                diaSemanaFim: diasSemana[dFim.getDay()],
+                valor: pInput, 
+                taxa: taxaInput, 
+                prazo: prazoInput, 
+                lucro: lucro 
+            });
+            
+            cofre += lucro;
+            localStorage.setItem('historico_invest', JSON.stringify(historicoInvest));
+            alert("Investimento Ativado!");
         }
         
         localStorage.setItem('cofre_total', cofre);
         update();
     }
 
+    function removerInvest(index) {
+        if(confirm("Remover investimento? O lucro será subtraído do saldo.")) {
+            cofre -= historicoInvest[index].lucro;
+            historicoInvest.splice(index, 1);
+            localStorage.setItem('historico_invest', JSON.stringify(historicoInvest));
+            localStorage.setItem('cofre_total', cofre);
+            update();
+        }
+    }
+
     function resetTudo() {
-        if(confirm("Deseja zerar todos os dados (Saldo e Investimentos)?")) {
-            cofre = 0;
-            valorInvestidoAtivo = 0;
+        if(confirm("Zerar sistema completamente?")) {
             localStorage.clear();
             location.reload();
         }
@@ -238,6 +321,13 @@
             document.getElementById('q-a').value = s.qa || 0;
             document.getElementById('q-b').value = s.qb || 0;
             document.getElementById('q-c').value = s.qc || 0;
+        } else {
+            // Garante que tudo comece em 0 no primeiro acesso
+            document.querySelectorAll('input[type="number"]').forEach(i => i.value = 0);
+        }
+        
+        if(!document.getElementById('inv-data').value) {
+             document.getElementById('inv-data').valueAsDate = new Date();
         }
         update();
     }
