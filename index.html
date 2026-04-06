@@ -23,12 +23,12 @@
             text-align: center; border: 1px solid #222;
         }
         .auth-card input {
-            width: 100%; padding: 15px; margin: 20px 0; border-radius: 12px;
+            width: 100%; padding: 15px; margin: 10px 0; border-radius: 12px;
             border: 1px solid #333; background: #000; color: white; outline: none; font-size: 1.1rem;
         }
         .btn-auth {
             width: 100%; padding: 18px; border-radius: 12px; border: none;
-            background: var(--neon); color: #000; font-weight: bold; cursor: pointer; font-size: 1rem;
+            background: var(--neon); color: #000; font-weight: bold; cursor: pointer; font-size: 1rem; margin-top: 10px;
         }
 
         #app-content { display: none; }
@@ -67,11 +67,15 @@
 <body>
 
 <div id="auth-screen">
-    <div class="auth-card">
-        <h1 style="color: var(--neon); margin: 0;">Finance PRO</h1>
-        <input type="text" id="auth-user" placeholder="Usuário">
-        <button class="btn-auth" onclick="handleAuth()">ENTRAR</button>
-    </div>
+    <form class="auth-card" id="login-form" onsubmit="handleAuth(event)">
+        <h1 style="color: var(--neon); margin: 0 0 10px 0;">Finance PRO</h1>
+        <p style="color: #666; margin-bottom: 10px;">Entre com seus dados</p>
+        
+        <input type="text" id="auth-user" placeholder="Usuário" required autocomplete="username">
+        <input type="password" id="auth-pass" placeholder="Senha" required autocomplete="current-password">
+        
+        <button type="submit" class="btn-auth">ENTRAR E SALVAR</button>
+    </form>
 </div>
 
 <div id="app-content">
@@ -165,11 +169,18 @@
     let ganhoVideosTotal = parseFloat(localStorage.getItem('ganho_videos')) || 0;
     let historicoInvest = JSON.parse(localStorage.getItem('historico_invest')) || [];
 
-    function handleAuth() {
-        const user = document.getElementById('auth-user').value.trim();
-        if (!user) return;
+    function handleAuth(event) {
+        event.preventDefault(); // Impede o recarregamento da página para processar via JS
         
-        // AUTO SAVE: Salva o usuário logado no navegador
+        const user = document.getElementById('auth-user').value.trim();
+        const pass = document.getElementById('auth-pass').value.trim();
+        
+        if (!user || !pass) {
+            alert("Preencha todos os campos!");
+            return;
+        }
+        
+        // Salva o estado de login no LocalStorage para o Auto-login do site
         localStorage.setItem('currentUser', user);
         
         let allUsers = JSON.parse(localStorage.getItem('all_registered_users')) || [];
@@ -177,6 +188,7 @@
             allUsers.push(user); 
             localStorage.setItem('all_registered_users', JSON.stringify(allUsers)); 
         }
+        
         unlockApp();
     }
 
@@ -240,7 +252,6 @@
                 document.getElementById('v-p').value = ""; document.getElementById('v-i').value = ""; document.getElementById('v-n').value = "";
             }
         }
-        // AUTO SAVE: Salva os novos valores financeiros no navegador
         localStorage.setItem('cofre_total', cofre);
         localStorage.setItem('historico_invest', JSON.stringify(historicoInvest));
         update(); renderHistorico();
@@ -294,7 +305,6 @@
         }
     };
 
-    // AUTO LOGIN: Verifica se já existe sessão ativa ao carregar a página
     window.onload = () => {
         document.getElementById('inv-data').value = new Date().toISOString().split('T')[0];
         
@@ -305,4 +315,4 @@
     }
 </script>
 </body>
-                    </html>
+</html>
