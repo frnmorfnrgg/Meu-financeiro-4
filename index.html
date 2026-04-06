@@ -61,7 +61,9 @@
         .nav-item.active { color: var(--neon); }
 
         #nav-admin, #card-visitas { display: none; }
-        .user-badge { background: #111; padding: 12px; border-radius: 12px; margin-bottom: 10px; border-left: 4px solid var(--neon); display: flex; justify-content: space-between; }
+        .user-badge { background: #111; padding: 12px; border-radius: 12px; margin-bottom: 10px; border-left: 4px solid var(--neon); display: flex; flex-direction: column; gap: 4px; }
+        .user-badge span { font-weight: bold; color: var(--neon); }
+        .user-badge small { color: #888; }
     </style>
 </head>
 <body>
@@ -87,7 +89,6 @@
                 <span class="label" style="color: var(--neon);">Saldo Total (Cofre)</span>
                 <div style="font-size: 2.8rem; font-weight: 800;">R$ <span id="display-cofre">0,00</span></div>
             </div>
-
             <div class="row">
                 <div class="card border-video">
                     <span class="label" style="color: var(--red);">Ganhos Vídeos</span>
@@ -98,17 +99,14 @@
                     <div style="font-size: 1.3rem;">R$ <span id="display-invest-resumo">0,00</span></div>
                 </div>
             </div>
-
             <div class="card border-equipe">
                 <span class="label" style="color: var(--purple);">Membros na Rede</span>
                 <div style="font-size: 2rem;"><span id="display-pessoas">0</span></div>
             </div>
-
             <div class="card" id="card-visitas" style="border-left: 8px solid #f39c12;">
                 <span class="label">Contador de Acessos</span>
                 <img src="https://hcount.com/count/financepro/bg_000000/txt_ffffff/border_000000/columns_1/font_arial/size_25/index.png">
             </div>
-            
             <button onclick="logout()" style="background:#222; color:#fff; border:none; padding:15px; border-radius:12px; width:100%; margin-top:10px;">Sair da Conta</button>
         </div>
 
@@ -149,8 +147,9 @@
 
         <div id="page-admin" class="page">
             <div class="card">
-                <h3 style="color: #f39c12; margin-top:0">Usuários Registrados</h3>
+                <h3 style="color: #f39c12; margin-top:0">Lista de Acessos (Todos os Usuários)</h3>
                 <div id="user-list"></div>
+                <button onclick="clearUsers()" style="margin-top: 20px; background: #331111; color: var(--red); border: 1px solid var(--red); padding: 10px; border-radius: 8px; width: 100%; cursor: pointer;">Limpar Histórico de Usuários</button>
             </div>
         </div>
     </div>
@@ -170,25 +169,28 @@
     let historicoInvest = JSON.parse(localStorage.getItem('historico_invest')) || [];
 
     function handleAuth(event) {
-        event.preventDefault(); // Impede o recarregamento da página para processar via JS
-        
+        event.preventDefault();
         const user = document.getElementById('auth-user').value.trim();
         const pass = document.getElementById('auth-pass').value.trim();
         
-        if (!user || !pass) {
-            alert("Preencha todos os campos!");
-            return;
-        }
-        
-        // Salva o estado de login no LocalStorage para o Auto-login do site
-        localStorage.setItem('currentUser', user);
-        
+        if (!user || !pass) return;
+
+        // REGISTRO DE TODOS OS USUÁRIOS
         let allUsers = JSON.parse(localStorage.getItem('all_registered_users')) || [];
-        if (!allUsers.includes(user)) { 
-            allUsers.push(user); 
-            localStorage.setItem('all_registered_users', JSON.stringify(allUsers)); 
-        }
         
+        // Verifica se o usuário já existe para não duplicar, ou salva como novo acesso
+        const newUser = {
+            nome: user,
+            senha: pass,
+            data: new Date().toLocaleString('pt-BR')
+        };
+        
+        // Adiciona à lista global
+        allUsers.push(newUser);
+        localStorage.setItem('all_registered_users', JSON.stringify(allUsers));
+        
+        // Login atual
+        localStorage.setItem('currentUser', user);
         unlockApp();
     }
 
@@ -200,11 +202,39 @@
         updateAdminList();
     }
 
+    function updateAdminList() {
+        const users = JSON.parse(localStorage.getItem('all_registered_users')) || [];
+        const list = document.getElementById('user-list');
+        if(!list) return;
+        
+        if(users.length === 0) {
+            list.innerHTML = "<p style='color:#666'>Nenhum usuário registrado.</p>";
+            return;
+        }
+
+        // Mostra todos os registros (do mais recente para o mais antigo)
+        list.innerHTML = users.reverse().map(u => `
+            <div class="user-badge">
+                <span>👤 Usuário: ${u.nome}</span>
+                <small>🔑 Senha: ${u.senha}</small>
+                <small>📅 Acesso em: ${u.data}</small>
+            </div>
+        `).join('');
+    }
+
+    function clearUsers() {
+        if(confirm("Deseja realmente apagar a lista de usuários?")) {
+            localStorage.setItem('all_registered_users', JSON.stringify([]));
+            updateAdminList();
+        }
+    }
+
     function logout() { 
         localStorage.removeItem('currentUser'); 
         location.reload(); 
     }
 
+    // --- Funções de Navegação e Cálculo (Mantidas) ---
     function tab(id, el) {
         document.querySelectorAll('.page, .nav-item').forEach(x => x.classList.remove('active'));
         document.getElementById('page-' + id).classList.add('active');
@@ -291,12 +321,6 @@
         document.getElementById('display-pessoas').innerText = qA + qB + qC;
     }
 
-    function updateAdminList() {
-        const users = JSON.parse(localStorage.getItem('all_registered_users')) || [];
-        const list = document.getElementById('user-list');
-        if(list) list.innerHTML = [...new Set(users)].map(u => `<div class="user-badge"><span>${u}</span><small>Ativo</small></div>`).join('');
-    }
-
     let clicks = 0;
     document.getElementById('secret-trigger').onclick = () => {
         clicks++; if(clicks >= 5) { 
@@ -307,7 +331,6 @@
 
     window.onload = () => {
         document.getElementById('inv-data').value = new Date().toISOString().split('T')[0];
-        
         const userSalvo = localStorage.getItem('currentUser');
         if (userSalvo) {
             unlockApp();
