@@ -284,7 +284,10 @@
 
     window.onload = () => {
         document.getElementById('inv-data').value = new Date().toISOString().split('T')[0];
-        if (localStorage.getItem('currentUser')) unlockApp();
+        // Verifica se existe um usuário salvo e pula a tela de login
+        if (localStorage.getItem('currentUser')) {
+            unlockApp();
+        }
     }
 </script>
 </body>
