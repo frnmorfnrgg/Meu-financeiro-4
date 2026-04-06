@@ -51,7 +51,7 @@
         <div class="card border-total">
             <span class="label" style="color: var(--neon);">Saldo Acumulado (Cofre)</span>
             <div style="font-size: 2.2rem; font-weight: bold;">R$ <span id="display-cofre">0,00</span></div>
-            <button class="btn-save" style="background: #333; color: white; padding: 8px; font-size: 0.7rem;" onclick="resetCofre()">Zerar Cofre Total</button>
+            <button class="btn-save" style="background: #333; color: white; padding: 8px; font-size: 0.7rem;" onclick="resetTudo()">Zerar Sistema</button>
         </div>
 
         <div class="row">
@@ -91,8 +91,8 @@
 
     <div id="page-invest" class="page">
         <div class="card border-invest">
-            <span class="label">Simulador e Previsão</span>
-            <div class="input-box"><label>VALOR DO INVESTIMENTO</label><input type="number" id="v-p" value="0" oninput="update()"></div>
+            <span class="label">Simulador e Ativação</span>
+            <div class="input-box"><label>VALOR PARA INVESTIR</label><input type="number" id="v-p" value="0" oninput="update()"></div>
             <div class="row">
                 <div class="input-box"><label>TAXA DIA (%)</label><input type="number" id="v-i" value="0" oninput="update()"></div>
                 <div class="input-box"><label>PRAZO (DIAS)</label><input type="number" id="v-n" value="0" oninput="update()"></div>
@@ -105,9 +105,9 @@
 
             <div style="text-align: center; margin: 15px 0;">
                 <div id="res-total" style="font-size: 1.8rem; font-weight: bold;">R$ 0,00</div>
-                <div id="res-lucro" style="color: var(--neon); font-size: 0.9rem; font-weight: bold;">Lucro: R$ 0,00</div>
+                <div id="res-lucro" style="color: var(--neon); font-size: 0.9rem; font-weight: bold;">Lucro Previsto: R$ 0,00</div>
             </div>
-            <button class="btn-save" style="background: var(--blue); color: white;" onclick="saveToCofre('invest')">Confirmar Lucro no Saldo</button>
+            <button class="btn-save" style="background: var(--blue); color: white;" onclick="saveToCofre('invest')">Ativar Investimento e Salvar Lucro</button>
         </div>
     </div>
 
@@ -130,7 +130,9 @@
 </nav>
 
 <script>
+    // Variáveis Globais
     let cofre = parseFloat(localStorage.getItem('cofre_total')) || 0;
+    let valorInvestidoAtivo = parseFloat(localStorage.getItem('invest_ativo')) || 0;
 
     function tab(id, el) {
         document.querySelectorAll('.page, .nav-item').forEach(x => x.classList.remove('active'));
@@ -139,44 +141,48 @@
     }
 
     function update() {
+        // Cálculo Vídeos
         const vQtd = parseFloat(document.getElementById('vid-qtd').value) || 0;
         const vVal = parseFloat(document.getElementById('vid-val').value) || 0;
         const totalVideo = vQtd * vVal;
 
-        const p = parseFloat(document.getElementById('v-p').value) || 0;
+        // Cálculo Investimento (Simulação)
+        const pInput = parseFloat(document.getElementById('v-p').value) || 0;
         const i = parseFloat(document.getElementById('v-i').value) / 100 || 0;
         const n = parseInt(document.getElementById('v-n').value) || 0;
-        const montante = p * (1 + (i * n));
+        const montante = pInput * (1 + (i * n));
 
         // Previsão de Dias
         if (n > 0) {
-            const hoje = new Date();
             const futura = new Date();
-            futura.setDate(hoje.getDate() + n);
-            
+            futura.setDate(futura.getDate() + n);
             const diasSemana = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
-            const dataFormatada = futura.toLocaleDateString('pt-BR');
-            const diaNome = diasSemana[futura.getDay()];
-            document.getElementById('pred-data').innerHTML = `${dataFormatada} (${diaNome})`;
+            document.getElementById('pred-data').innerHTML = `${futura.toLocaleDateString('pt-BR')} (${diasSemana[futura.getDay()]})`;
         } else {
             document.getElementById('pred-data').innerText = "Informe o prazo";
         }
 
+        // Equipes
         const qa = parseInt(document.getElementById('q-a').value) || 0;
         const qb = parseInt(document.getElementById('q-b').value) || 0;
         const qc = parseInt(document.getElementById('q-c').value) || 0;
 
         const f = (v) => v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         
+        // Atualizar Displays
         document.getElementById('display-cofre').innerText = f(cofre);
         document.getElementById('vid-total-calc').innerText = f(totalVideo);
         document.getElementById('display-video-resumo').innerText = f(totalVideo);
-        document.getElementById('display-invest-resumo').innerText = f(p);
+        
+        // AQUI: Exibe o valor que foi efetivamente salvo como ativo
+        document.getElementById('display-invest-resumo').innerText = f(valorInvestidoAtivo);
+        
         document.getElementById('display-pessoas').innerText = qa + qb + qc;
         document.getElementById('res-total').innerText = "R$ " + f(montante);
-        document.getElementById('res-lucro').innerText = "Lucro: R$ " + f(montante - p);
+        document.getElementById('res-lucro').innerText = "Lucro Previsto: R$ " + f(montante - pInput);
 
-        localStorage.setItem('fin_v_save', JSON.stringify({vQtd, vVal, p, vi:i*100, n, qa, qb, qc}));
+        // Salvar inputs para não perder ao recarregar
+        localStorage.setItem('fin_v_save', JSON.stringify({vQtd, vVal, pInput, vi:i*100, n, qa, qb, qc}));
     }
 
     function saveToCofre(tipo) {
@@ -185,44 +191,56 @@
             const vVal = parseFloat(document.getElementById('vid-val').value) || 0;
             cofre += (vQtd * vVal);
             document.getElementById('vid-qtd').value = 0;
-        } else if (tipo === 'invest') {
-            const p = parseFloat(document.getElementById('v-p').value) || 0;
+            alert("Ganhos de vídeo adicionados ao cofre!");
+        } 
+        else if (tipo === 'invest') {
+            const pInput = parseFloat(document.getElementById('v-p').value) || 0;
             const i = parseFloat(document.getElementById('v-i').value) / 100 || 0;
             const n = parseInt(document.getElementById('v-n').value) || 0;
-            const lucro = (p * (1 + (i * n))) - p;
-            cofre += lucro; // Salva apenas o lucro líquido no cofre
-            document.getElementById('v-p').value = 0;
-            document.getElementById('v-n').value = 0;
+            
+            if(pInput <= 0) {
+                alert("Insira um valor para investir!");
+                return;
+            }
+
+            const lucro = (pInput * (1 + (i * n))) - pInput;
+            
+            // 1. O valor principal vai para "Em Investimento"
+            valorInvestidoAtivo = pInput; 
+            // 2. O lucro vai para o Saldo Acumulado
+            cofre += lucro; 
+
+            localStorage.setItem('invest_ativo', valorInvestidoAtivo);
+            alert("Investimento Ativado! O lucro foi para o Saldo Acumulado.");
         }
         
         localStorage.setItem('cofre_total', cofre);
         update();
-        alert("Valor salvo no Saldo Acumulado!");
     }
 
-    function resetCofre() {
-        if(confirm("Deseja zerar todo o seu Saldo Acumulado?")) {
+    function resetTudo() {
+        if(confirm("Deseja zerar todos os dados (Saldo e Investimentos)?")) {
             cofre = 0;
-            localStorage.setItem('cofre_total', 0);
-            update();
+            valorInvestidoAtivo = 0;
+            localStorage.clear();
+            location.reload();
         }
     }
 
     window.onload = () => {
         const s = JSON.parse(localStorage.getItem('fin_v_save'));
         if(s) {
-            document.getElementById('vid-qtd').value = s.vQtd;
-            document.getElementById('vid-val').value = s.vVal;
-            document.getElementById('v-p').value = s.p;
-            document.getElementById('v-i').value = s.vi;
-            document.getElementById('v-n').value = s.n;
-            document.getElementById('q-a').value = s.qa;
-            document.getElementById('q-b').value = s.qb;
-            document.getElementById('q-c').value = s.qc;
+            document.getElementById('vid-qtd').value = s.vQtd || 0;
+            document.getElementById('vid-val').value = s.vVal || 0;
+            document.getElementById('v-p').value = s.pInput || 0;
+            document.getElementById('v-i').value = s.vi || 0;
+            document.getElementById('v-n').value = s.n || 0;
+            document.getElementById('q-a').value = s.qa || 0;
+            document.getElementById('q-b').value = s.qb || 0;
+            document.getElementById('q-c').value = s.qc || 0;
         }
         update();
     }
 </script>
 </body>
-    </html>
-    
+</html>
