@@ -94,13 +94,13 @@
         <div id="page-invest" class="page">
             <div class="card border-invest">
                 <span class="label">Simular Investimento</span>
-                <div class="input-box"><label>VALOR APLICADO (R$)</label><input type="number" id="v-p" oninput="calcPreview()"></div>
+                <div class="input-box"><label>VALOR QUE VOCÊ INVESTIU (R$)</label><input type="number" id="v-p" oninput="calcPreview()"></div>
                 <div class="row">
                     <div class="input-box"><label>TAXA (%)</label><input type="number" id="v-i" oninput="calcPreview()"></div>
-                    <div class="input-box"><label>DIAS PARA RECEBER</label><input type="number" id="v-n" oninput="calcPreview()"></div>
+                    <div class="input-box"><label>DIAS</label><input type="number" id="v-n" oninput="calcPreview()"></div>
                 </div>
                 <div id="preview-box" style="display:none; background:rgba(0,212,255,0.1); padding:15px; border-radius:12px; margin-bottom:15px; border:1px dashed var(--blue); text-align:center;">
-                    <small style="color: #888;">Retorno Final Esperado:</small>
+                    <small style="color: #888;">Retorno Total ao final:</small>
                     <div id="preview-lucro" style="font-size:1.5rem; font-weight:bold; color: var(--blue);">R$ 0,00</div>
                 </div>
                 <button class="btn-save" style="background: var(--blue); color: white;" onclick="saveToCofre('invest')">APLICAR INVESTIMENTO</button>
@@ -120,9 +120,9 @@
         <div id="page-equipe" class="page">
             <div class="card border-equipe">
                 <span class="label">Gerenciar Equipes</span>
-                <div class="input-box"><label>EQUIPE A (Membros)</label><input type="number" id="q-a" value="0" oninput="update()"></div>
-                <div class="input-box"><label>EQUIPE B (Membros)</label><input type="number" id="q-b" value="0" oninput="update()"></div>
-                <div class="input-box"><label>EQUIPE C (Membros)</label><input type="number" id="q-c" value="0" oninput="update()"></div>
+                <div class="input-box"><label>EQUIPE A</label><input type="number" id="q-a" value="0" oninput="update()"></div>
+                <div class="input-box"><label>EQUIPE B</label><input type="number" id="q-b" value="0" oninput="update()"></div>
+                <div class="input-box"><label>EQUIPE C</label><input type="number" id="q-c" value="0" oninput="update()"></div>
             </div>
         </div>
 
@@ -144,7 +144,7 @@
 </div>
 
 <script>
-    // --- FIREBASE CONFIG ---
+    // --- FIREBASE CONFIG (INSIRA SUAS CHAVES) ---
     const firebaseConfig = {
         apiKey: "SUA_API_KEY",
         authDomain: "SEU_PROJETO.firebaseapp.com",
@@ -178,7 +178,7 @@
     }
 
     function zerarSaldo() {
-        if(confirm("Zerar tudo?")) {
+        if(confirm("Zerar todos os dados de saldo e investimento?")) {
             cofreGeral = 0; ganhoVideos = 0; historicoInvest = [];
             localStorage.setItem('cofre_total', 0); localStorage.setItem('ganho_videos', 0);
             localStorage.setItem('historico_invest', JSON.stringify([]));
@@ -193,11 +193,11 @@
             const total = qtd * val;
             if(total > 0) { cofreGeral += total; ganhoVideos += total; localStorage.setItem('ganho_videos', ganhoVideos); }
         } else if (tipo === 'invest') {
-            const p = parseFloat(document.getElementById('v-p').value) || 0;
+            const capital = parseFloat(document.getElementById('v-p').value) || 0;
             const tx = parseFloat(document.getElementById('v-i').value) || 0;
             const n = parseInt(document.getElementById('v-n').value) || 0;
-            if(p > 0 && n > 0) {
-                const lucro = p * (tx/100) * n; // O lucro puro
+            if(capital > 0 && n > 0) {
+                const lucroPuro = capital * (tx/100) * n;
                 
                 const dataFutura = new Date();
                 dataFutura.setDate(dataFutura.getDate() + n);
@@ -205,14 +205,14 @@
                 const dataFormatada = dataFutura.toLocaleDateString('pt-BR', opcoes);
 
                 historicoInvest.push({ 
-                    aplicado: p, 
-                    lucro: lucro, 
-                    totalFinal: (p + lucro), 
+                    investido: capital, 
+                    lucro: lucroPuro, 
+                    totalFinal: (capital + lucroPuro), 
                     dataRecebe: dataFormatada 
                 });
                 
-                // O lucro puro vai para o saldo total (cofre)
-                cofreGeral += lucro;
+                // O lucro vai para o Saldo Total (Cofre)
+                cofreGeral += lucroPuro;
             }
         }
         localStorage.setItem('cofre_total', cofreGeral);
@@ -223,12 +223,12 @@
     function update() {
         const f = (v) => v.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
         
-        // Saldo Invest. = Apenas a soma do Capital Aplicado (Ex: os 130)
-        const saldoInvestAplicado = historicoInvest.reduce((acc, i) => acc + i.aplicado, 0);
+        // Saldo Investimento = Apenas o dinheiro que você de fato aplicou
+        const totalInvestidoOriginal = historicoInvest.reduce((acc, i) => acc + i.investido, 0);
         
         document.getElementById('display-cofre').innerText = f(cofreGeral);
         document.getElementById('display-video-resumo').innerText = f(ganhoVideos);
-        document.getElementById('display-invest-resumo').innerText = f(saldoInvestAplicado);
+        document.getElementById('display-invest-resumo').innerText = f(totalInvestidoOriginal);
         
         const qA = parseInt(document.getElementById('q-a').value) || 0;
         const qB = parseInt(document.getElementById('q-b').value) || 0;
@@ -242,14 +242,15 @@
         container.innerHTML = historicoInvest.map((item, i) => `
             <div style="background:#1a1a1a; padding:12px; border-radius:15px; margin-bottom:10px; border:1px solid #333; position:relative;">
                 <button onclick="removeInvest(${i})" style="position:absolute; right:12px; top:12px; background:none; border:none; color:var(--red); font-weight:bold;">X</button>
-                <div style="color:var(--blue); font-weight:bold;">Receberá Total: R$ ${item.totalFinal.toFixed(2)}</div>
+                <div style="color:var(--blue); font-weight:bold;">Investido: R$ ${item.investido.toFixed(2)}</div>
+                <div style="font-size:0.8rem; color:#888; margin-top:4px;">Retorno Total: R$ ${item.totalFinal.toFixed(2)}</div>
                 <div style="font-size:0.75rem; color:var(--neon); margin-top:4px;">📅 Data: ${item.dataRecebe}</div>
-                <small style="color:#666">Você investiu: R$ ${item.aplicado.toFixed(2)}</small>
             </div>
         `).join('');
     }
 
     function removeInvest(i) {
+        // Ao remover, tiramos o lucro do cofre
         cofreGeral -= historicoInvest[i].lucro;
         historicoInvest.splice(i, 1);
         localStorage.setItem('cofre_total', cofreGeral);
@@ -294,4 +295,5 @@
     window.onload = () => { if(localStorage.getItem('session')) unlock(); }
 </script>
 </body>
-</html>
+    </html>
+    
