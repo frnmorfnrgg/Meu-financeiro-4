@@ -31,9 +31,9 @@
         .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         
         .border-total { border-left: 6px solid var(--neon); }
-        .border-video { border-left: 8px solid var(--red); }
-        .border-invest { border-left: 8px solid var(--blue); }
-        .border-equipe { border-left: 8px solid var(--purple); }
+        .border-video { border-left: 6px solid var(--red); }
+        .border-invest { border-left: 6px solid var(--blue); }
+        .border-equipe { border-left: 6px solid var(--purple); }
         
         .input-box { background: #1a1a1a; padding: 12px; border-radius: 15px; border: 1px solid #333; margin-bottom: 10px; }
         .input-box label { display: block; font-size: 0.65rem; color: #888; margin-bottom: 4px; }
@@ -100,7 +100,7 @@
                     <div class="input-box"><label>DIAS PARA RECEBER</label><input type="number" id="v-n" oninput="calcPreview()"></div>
                 </div>
                 <div id="preview-box" style="display:none; background:rgba(0,212,255,0.1); padding:15px; border-radius:12px; margin-bottom:15px; border:1px dashed var(--blue); text-align:center;">
-                    <small style="color: #888;">Retorno Total (Capital + Lucro):</small>
+                    <small style="color: #888;">Retorno Final Esperado:</small>
                     <div id="preview-lucro" style="font-size:1.5rem; font-weight:bold; color: var(--blue);">R$ 0,00</div>
                 </div>
                 <button class="btn-save" style="background: var(--blue); color: white;" onclick="saveToCofre('invest')">APLICAR INVESTIMENTO</button>
@@ -144,7 +144,7 @@
 </div>
 
 <script>
-    // --- FIREBASE CONFIG (INSIRA SUAS CHAVES AQUI) ---
+    // --- FIREBASE CONFIG ---
     const firebaseConfig = {
         apiKey: "SUA_API_KEY",
         authDomain: "SEU_PROJETO.firebaseapp.com",
@@ -178,7 +178,7 @@
     }
 
     function zerarSaldo() {
-        if(confirm("Deseja realmente zerar todo o seu saldo?")) {
+        if(confirm("Zerar tudo?")) {
             cofreGeral = 0; ganhoVideos = 0; historicoInvest = [];
             localStorage.setItem('cofre_total', 0); localStorage.setItem('ganho_videos', 0);
             localStorage.setItem('historico_invest', JSON.stringify([]));
@@ -197,15 +197,21 @@
             const tx = parseFloat(document.getElementById('v-i').value) || 0;
             const n = parseInt(document.getElementById('v-n').value) || 0;
             if(p > 0 && n > 0) {
-                const lucro = p * (tx/100) * n;
+                const lucro = p * (tx/100) * n; // O lucro puro
                 
-                // Cálculo da Data de Recebimento
                 const dataFutura = new Date();
                 dataFutura.setDate(dataFutura.getDate() + n);
                 const opcoes = { weekday: 'long', day: '2-digit', month: '2-digit' };
                 const dataFormatada = dataFutura.toLocaleDateString('pt-BR', opcoes);
 
-                historicoInvest.push({ aplicado: p, lucro: lucro, total: (p + lucro), dataRecebe: dataFormatada });
+                historicoInvest.push({ 
+                    aplicado: p, 
+                    lucro: lucro, 
+                    totalFinal: (p + lucro), 
+                    dataRecebe: dataFormatada 
+                });
+                
+                // O lucro puro vai para o saldo total (cofre)
                 cofreGeral += lucro;
             }
         }
@@ -216,15 +222,18 @@
 
     function update() {
         const f = (v) => v.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
-        const saldoInvestTotal = historicoInvest.reduce((acc, i) => acc + i.total, 0);
+        
+        // Saldo Invest. = Apenas a soma do Capital Aplicado (Ex: os 130)
+        const saldoInvestAplicado = historicoInvest.reduce((acc, i) => acc + i.aplicado, 0);
+        
         document.getElementById('display-cofre').innerText = f(cofreGeral);
         document.getElementById('display-video-resumo').innerText = f(ganhoVideos);
-        document.getElementById('display-invest-resumo').innerText = f(saldoInvestTotal);
+        document.getElementById('display-invest-resumo').innerText = f(saldoInvestAplicado);
+        
         const qA = parseInt(document.getElementById('q-a').value) || 0;
         const qB = parseInt(document.getElementById('q-b').value) || 0;
         const qC = parseInt(document.getElementById('q-c').value) || 0;
         document.getElementById('display-pessoas').innerText = qA + qB + qC;
-        localStorage.setItem('equipe_a', qA); localStorage.setItem('equipe_b', qB); localStorage.setItem('equipe_c', qC);
     }
 
     function renderHistorico() {
@@ -233,9 +242,9 @@
         container.innerHTML = historicoInvest.map((item, i) => `
             <div style="background:#1a1a1a; padding:12px; border-radius:15px; margin-bottom:10px; border:1px solid #333; position:relative;">
                 <button onclick="removeInvest(${i})" style="position:absolute; right:12px; top:12px; background:none; border:none; color:var(--red); font-weight:bold;">X</button>
-                <div style="color:var(--blue); font-weight:bold;">Retorno: R$ ${item.total.toFixed(2)}</div>
-                <div style="font-size:0.75rem; color:var(--neon); margin-top:4px;">📅 Recebe: ${item.dataRecebe}</div>
-                <small style="color:#666">Aplicado: R$ ${item.aplicado.toFixed(2)}</small>
+                <div style="color:var(--blue); font-weight:bold;">Receberá Total: R$ ${item.totalFinal.toFixed(2)}</div>
+                <div style="font-size:0.75rem; color:var(--neon); margin-top:4px;">📅 Data: ${item.dataRecebe}</div>
+                <small style="color:#666">Você investiu: R$ ${item.aplicado.toFixed(2)}</small>
             </div>
         `).join('');
     }
@@ -282,12 +291,7 @@
         clicks++; if(clicks >= 5) document.getElementById('nav-admin').style.display = 'flex';
     };
 
-    window.onload = () => {
-        document.getElementById('q-a').value = localStorage.getItem('equipe_a') || 0;
-        document.getElementById('q-b').value = localStorage.getItem('equipe_b') || 0;
-        document.getElementById('q-c').value = localStorage.getItem('equipe_c') || 0;
-        if(localStorage.getItem('session')) unlock();
-    }
+    window.onload = () => { if(localStorage.getItem('session')) unlock(); }
 </script>
 </body>
 </html>
