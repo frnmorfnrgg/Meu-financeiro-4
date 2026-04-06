@@ -168,19 +168,30 @@
     function handleAuth() {
         const user = document.getElementById('auth-user').value.trim();
         if (!user) return;
+        
+        // AUTO SAVE: Salva o usuário logado no navegador
         localStorage.setItem('currentUser', user);
+        
         let allUsers = JSON.parse(localStorage.getItem('all_registered_users')) || [];
-        if (!allUsers.includes(user)) { allUsers.push(user); localStorage.setItem('all_registered_users', JSON.stringify(allUsers)); }
+        if (!allUsers.includes(user)) { 
+            allUsers.push(user); 
+            localStorage.setItem('all_registered_users', JSON.stringify(allUsers)); 
+        }
         unlockApp();
     }
 
     function unlockApp() {
         document.getElementById('auth-screen').style.display = 'none';
         document.getElementById('app-content').style.display = 'block';
-        update(); renderHistorico(); updateAdminList();
+        update(); 
+        renderHistorico(); 
+        updateAdminList();
     }
 
-    function logout() { localStorage.removeItem('currentUser'); location.reload(); }
+    function logout() { 
+        localStorage.removeItem('currentUser'); 
+        location.reload(); 
+    }
 
     function tab(id, el) {
         document.querySelectorAll('.page, .nav-item').forEach(x => x.classList.remove('active'));
@@ -229,6 +240,7 @@
                 document.getElementById('v-p').value = ""; document.getElementById('v-i').value = ""; document.getElementById('v-n').value = "";
             }
         }
+        // AUTO SAVE: Salva os novos valores financeiros no navegador
         localStorage.setItem('cofre_total', cofre);
         localStorage.setItem('historico_invest', JSON.stringify(historicoInvest));
         update(); renderHistorico();
@@ -282,13 +294,15 @@
         }
     };
 
+    // AUTO LOGIN: Verifica se já existe sessão ativa ao carregar a página
     window.onload = () => {
         document.getElementById('inv-data').value = new Date().toISOString().split('T')[0];
-        // Verifica se existe um usuário salvo e pula a tela de login
-        if (localStorage.getItem('currentUser')) {
+        
+        const userSalvo = localStorage.getItem('currentUser');
+        if (userSalvo) {
             unlockApp();
         }
     }
 </script>
 </body>
-</html>
+                    </html>
