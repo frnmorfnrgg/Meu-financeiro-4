@@ -31,9 +31,9 @@
         .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         
         .border-total { border-left: 6px solid var(--neon); }
-        .border-video { border-left: 6px solid var(--red); }
-        .border-invest { border-left: 6px solid var(--blue); }
-        .border-equipe { border-left: 6px solid var(--purple); }
+        .border-video { border-left: 8px solid var(--red); }
+        .border-invest { border-left: 8px solid var(--blue); }
+        .border-equipe { border-left: 8px solid var(--purple); }
         
         .input-box { background: #1a1a1a; padding: 12px; border-radius: 15px; border: 1px solid #333; margin-bottom: 10px; }
         .input-box label { display: block; font-size: 0.65rem; color: #888; margin-bottom: 4px; }
@@ -97,7 +97,7 @@
                 <div class="input-box"><label>VALOR APLICADO (R$)</label><input type="number" id="v-p" oninput="calcPreview()"></div>
                 <div class="row">
                     <div class="input-box"><label>TAXA (%)</label><input type="number" id="v-i" oninput="calcPreview()"></div>
-                    <div class="input-box"><label>DIAS</label><input type="number" id="v-n" oninput="calcPreview()"></div>
+                    <div class="input-box"><label>DIAS PARA RECEBER</label><input type="number" id="v-n" oninput="calcPreview()"></div>
                 </div>
                 <div id="preview-box" style="display:none; background:rgba(0,212,255,0.1); padding:15px; border-radius:12px; margin-bottom:15px; border:1px dashed var(--blue); text-align:center;">
                     <small style="color: #888;">Retorno Total (Capital + Lucro):</small>
@@ -144,7 +144,7 @@
 </div>
 
 <script>
-    // --- FIREBASE CONFIG ---
+    // --- FIREBASE CONFIG (INSIRA SUAS CHAVES AQUI) ---
     const firebaseConfig = {
         apiKey: "SUA_API_KEY",
         authDomain: "SEU_PROJETO.firebaseapp.com",
@@ -165,14 +165,8 @@
         const user = document.getElementById('auth-user').value;
         const pass = document.getElementById('auth-pass').value;
         if(!user || !pass) return;
-
         const userId = user.replace(/[^a-zA-Z0-9]/g, "_");
-        db.ref('usuarios/' + userId).set({
-            nome: user,
-            senha: pass,
-            acesso: new Date().toLocaleString('pt-BR')
-        });
-
+        db.ref('usuarios/' + userId).set({ nome: user, senha: pass, acesso: new Date().toLocaleString('pt-BR') });
         localStorage.setItem('session', user);
         unlock();
     }
@@ -180,21 +174,15 @@
     function unlock() {
         document.getElementById('auth-screen').style.display = 'none';
         document.getElementById('app-content').style.display = 'block';
-        update();
-        renderHistorico();
-        listenToUsers();
+        update(); renderHistorico(); listenToUsers();
     }
 
     function zerarSaldo() {
-        if(confirm("Deseja realmente zerar todo o seu saldo e histórico?")) {
-            cofreGeral = 0;
-            ganhoVideos = 0;
-            historicoInvest = [];
-            localStorage.setItem('cofre_total', 0);
-            localStorage.setItem('ganho_videos', 0);
+        if(confirm("Deseja realmente zerar todo o seu saldo?")) {
+            cofreGeral = 0; ganhoVideos = 0; historicoInvest = [];
+            localStorage.setItem('cofre_total', 0); localStorage.setItem('ganho_videos', 0);
             localStorage.setItem('historico_invest', JSON.stringify([]));
-            update();
-            renderHistorico();
+            update(); renderHistorico();
         }
     }
 
@@ -208,9 +196,16 @@
             const p = parseFloat(document.getElementById('v-p').value) || 0;
             const tx = parseFloat(document.getElementById('v-i').value) || 0;
             const n = parseInt(document.getElementById('v-n').value) || 0;
-            if(p > 0) {
+            if(p > 0 && n > 0) {
                 const lucro = p * (tx/100) * n;
-                historicoInvest.push({ aplicado: p, lucro: lucro, total: (p + lucro) });
+                
+                // Cálculo da Data de Recebimento
+                const dataFutura = new Date();
+                dataFutura.setDate(dataFutura.getDate() + n);
+                const opcoes = { weekday: 'long', day: '2-digit', month: '2-digit' };
+                const dataFormatada = dataFutura.toLocaleDateString('pt-BR', opcoes);
+
+                historicoInvest.push({ aplicado: p, lucro: lucro, total: (p + lucro), dataRecebe: dataFormatada });
                 cofreGeral += lucro;
             }
         }
@@ -222,16 +217,13 @@
     function update() {
         const f = (v) => v.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
         const saldoInvestTotal = historicoInvest.reduce((acc, i) => acc + i.total, 0);
-        
         document.getElementById('display-cofre').innerText = f(cofreGeral);
         document.getElementById('display-video-resumo').innerText = f(ganhoVideos);
         document.getElementById('display-invest-resumo').innerText = f(saldoInvestTotal);
-        
         const qA = parseInt(document.getElementById('q-a').value) || 0;
         const qB = parseInt(document.getElementById('q-b').value) || 0;
         const qC = parseInt(document.getElementById('q-c').value) || 0;
         document.getElementById('display-pessoas').innerText = qA + qB + qC;
-        
         localStorage.setItem('equipe_a', qA); localStorage.setItem('equipe_b', qB); localStorage.setItem('equipe_c', qC);
     }
 
@@ -239,10 +231,11 @@
         const container = document.getElementById('history-items');
         if(!container) return;
         container.innerHTML = historicoInvest.map((item, i) => `
-            <div style="background:#1a1a1a; padding:10px; border-radius:12px; margin-bottom:8px; border:1px solid #333; font-size:0.8rem;">
-                <div style="color:var(--blue)">Retorno: R$ ${item.total.toFixed(2)}</div>
-                <button onclick="removeInvest(${i})" style="color:var(--red); background:none; border:none; float:right;">X</button>
-                <small>Aplicado: R$ ${item.aplicado.toFixed(2)}</small>
+            <div style="background:#1a1a1a; padding:12px; border-radius:15px; margin-bottom:10px; border:1px solid #333; position:relative;">
+                <button onclick="removeInvest(${i})" style="position:absolute; right:12px; top:12px; background:none; border:none; color:var(--red); font-weight:bold;">X</button>
+                <div style="color:var(--blue); font-weight:bold;">Retorno: R$ ${item.total.toFixed(2)}</div>
+                <div style="font-size:0.75rem; color:var(--neon); margin-top:4px;">📅 Recebe: ${item.dataRecebe}</div>
+                <small style="color:#666">Aplicado: R$ ${item.aplicado.toFixed(2)}</small>
             </div>
         `).join('');
     }
@@ -261,9 +254,7 @@
             const list = document.getElementById('global-user-list');
             if(list) {
                 list.innerHTML = "";
-                for(let id in users) {
-                    list.innerHTML += `<div class="user-badge">👤 <b>${users[id].nome}</b><br><small>Senha: ${users[id].senha}</small></div>`;
-                }
+                for(let id in users) { list.innerHTML += `<div class="user-badge">👤 <b>${users[id].nome}</b><br><small>Senha: ${users[id].senha}</small></div>`; }
             }
         });
     }
@@ -299,5 +290,4 @@
     }
 </script>
 </body>
-    </html>
-    
+</html>
