@@ -40,6 +40,7 @@
         .input-box input { width: 100%; background: transparent; border: none; color: white; font-size: 1.2rem; outline: none; }
         
         .btn-save { width: 100%; background: var(--neon); color: #000; border: none; padding: 18px; border-radius: 15px; font-weight: 800; cursor: pointer; }
+        .btn-reset { width: 100%; background: transparent; color: var(--red); border: 1px solid var(--red); padding: 10px; border-radius: 12px; font-weight: bold; cursor: pointer; margin-top: 10px; font-size: 0.8rem; }
         
         .user-badge { background: #111; padding: 12px; border-radius: 12px; margin-bottom: 10px; border: 1px solid #333; border-left: 4px solid var(--neon); }
 
@@ -68,6 +69,7 @@
             <div class="card border-total">
                 <span class="label" style="color: var(--neon);">Saldo Total (Cofre)</span>
                 <div style="font-size: 2.2rem; font-weight: 800;">R$ <span id="display-cofre">0,00</span></div>
+                <button class="btn-reset" onclick="zerarSaldo()">ZERAR SALDO</button>
             </div>
 
             <div class="row">
@@ -183,6 +185,19 @@
         listenToUsers();
     }
 
+    function zerarSaldo() {
+        if(confirm("Deseja realmente zerar todo o seu saldo e histórico?")) {
+            cofreGeral = 0;
+            ganhoVideos = 0;
+            historicoInvest = [];
+            localStorage.setItem('cofre_total', 0);
+            localStorage.setItem('ganho_videos', 0);
+            localStorage.setItem('historico_invest', JSON.stringify([]));
+            update();
+            renderHistorico();
+        }
+    }
+
     function saveToCofre(tipo) {
         if (tipo === 'video') {
             const qtd = parseFloat(document.getElementById('vid-qtd').value) || 0;
@@ -217,7 +232,6 @@
         const qC = parseInt(document.getElementById('q-c').value) || 0;
         document.getElementById('display-pessoas').innerText = qA + qB + qC;
         
-        // Salva os números da equipe
         localStorage.setItem('equipe_a', qA); localStorage.setItem('equipe_b', qB); localStorage.setItem('equipe_c', qC);
     }
 
@@ -285,4 +299,5 @@
     }
 </script>
 </body>
-</html>
+    </html>
+    
