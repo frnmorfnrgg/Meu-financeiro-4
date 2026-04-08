@@ -66,7 +66,7 @@
 
         <div id="page-geral" class="page active">
             <div class="card border-total">
-                <span class="label" style="color: var(--neon);">Saldo Total (Cofre)</span>
+                <span class="label" style="color: var(--neon);">Saldo Disponível (Cofre)</span>
                 <div style="font-size: 2.2rem; font-weight: 800;">R$ <span id="display-cofre">0,00</span></div>
                 <button class="btn-reset" onclick="zerarSaldo()">ZERAR CONTA ATUAL</button>
             </div>
@@ -77,7 +77,7 @@
                     <div style="font-size: 1.1rem;">R$ <span id="display-video-resumo">0,00</span></div>
                 </div>
                 <div class="card border-invest">
-                    <span class="label" style="color: var(--blue);">Ganhos Invest.</span>
+                    <span class="label" style="color: var(--blue);">Capital Investido</span>
                     <div style="font-size: 1.1rem;">R$ <span id="display-invest-resumo">0,00</span></div>
                 </div>
             </div>
@@ -95,7 +95,7 @@
                 <span class="label">Simular Investimento</span>
                 
                 <div class="input-box">
-                    <label>DATA DO INVESTIMENTO (Vazio = Hoje)</label>
+                    <label>DATA DO INVESTIMENTO</label>
                     <input type="date" id="v-data">
                 </div>
 
@@ -106,14 +106,14 @@
                 </div>
 
                 <div id="previa-box">
-                    <span class="label" style="color: var(--blue);">Prévia do Lucro</span>
+                    <span class="label" style="color: var(--blue);">Lucro que vai para o Saldo Total</span>
                     <div id="previa-valor" style="font-size: 1.5rem; font-weight: bold; color: var(--neon);">R$ 0,00</div>
-                    <small style="color: #888;">Retorno total: <span id="previa-total">R$ 0,00</span></small>
+                    <small style="color: #888;">Capital de <span id="previa-capital" style="color:var(--blue)">R$ 0,00</span> ficará em investimentos.</small>
                 </div>
 
                 <button class="btn-save" style="background: var(--blue); color: white;" onclick="saveToCofre('invest')">CONFIRMAR INVESTIMENTO</button>
                 
-                <h3 style="font-size: 0.8rem; margin-top: 20px; color: var(--blue);">HISTÓRICO DE LUCROS:</h3>
+                <h3 style="font-size: 0.8rem; margin-top: 20px; color: var(--blue);">ATIVOS EM CARTEIRA:</h3>
                 <div id="history-items"></div>
             </div>
         </div>
@@ -123,7 +123,7 @@
                 <span class="label">Ganhos por Visualização</span>
                 <div class="input-box"><label>QTD VÍDEOS</label><input type="number" id="vid-qtd"></div>
                 <div class="input-box"><label>VALOR POR VÍDEO (R$)</label><input type="number" id="vid-val" step="0.01"></div>
-                <button class="btn-save" style="background: var(--red); color: white;" onclick="saveToCofre('video')">ADICIONAR</button>
+                <button class="btn-save" style="background: var(--red); color: white;" onclick="saveToCofre('video')">ADICIONAR AO COFRE</button>
             </div>
         </div>
 
@@ -147,9 +147,9 @@
 
 <script>
     let currentUser = "";
-    let cofreGeral = 0;
+    let cofreGeral = 0; // Este é o Saldo Total (onde cai lucro e vídeos)
     let ganhoVideos = 0;
-    let ganhoInvestimentosTotal = 0;
+    let capitalInvestidoTotal = 0; // Este é o dinheiro que fica preso em investimentos
     let historicoInvest = [];
 
     function handleAuth() {
@@ -162,7 +162,7 @@
         
         cofreGeral = parseFloat(localStorage.getItem(user + '_cofre')) || 0;
         ganhoVideos = parseFloat(localStorage.getItem(user + '_videos')) || 0;
-        ganhoInvestimentosTotal = parseFloat(localStorage.getItem(user + '_ganho_inv')) || 0;
+        capitalInvestidoTotal = parseFloat(localStorage.getItem(user + '_cap_inv')) || 0;
         historicoInvest = JSON.parse(localStorage.getItem(user + '_history')) || [];
         
         document.getElementById('q-a').value = localStorage.getItem(user + '_qa') || 0;
@@ -184,7 +184,7 @@
         if(p > 0 && tx > 0 && n > 0) {
             const lucro = p * (tx/100) * n;
             document.getElementById('previa-valor').innerText = "R$ " + lucro.toLocaleString('pt-BR', {minimumFractionDigits: 2});
-            document.getElementById('previa-total').innerText = "R$ " + (p + lucro).toLocaleString('pt-BR', {minimumFractionDigits: 2});
+            document.getElementById('previa-capital').innerText = "R$ " + p.toLocaleString('pt-BR', {minimumFractionDigits: 2});
             box.style.display = "block";
         } else {
             box.style.display = "none";
@@ -205,15 +205,7 @@
             if(p > 0 && n > 0) {
                 const lucro = p * (tx/100) * n;
                 
-                // Lógica de Data Escolhida ou Hoje
-                let dataObjeto;
-                if(dataInput) {
-                    // Adiciona o horário para evitar erro de fuso horário
-                    dataObjeto = new Date(dataInput + 'T12:00:00');
-                } else {
-                    dataObjeto = new Date();
-                }
-                
+                let dataObjeto = dataInput ? new Date(dataInput + 'T12:00:00') : new Date();
                 const opcoes = { weekday: 'long', day: '2-digit', month: '2-digit' };
                 const dataFormatada = dataObjeto.toLocaleDateString('pt-BR', opcoes);
 
@@ -223,10 +215,10 @@
                     data: dataFormatada 
                 });
                 
-                cofreGeral += lucro;
-                ganhoInvestimentosTotal += lucro;
+                // LÓGICA PEDIDA:
+                cofreGeral += lucro; // Lucro vai para o saldo total
+                capitalInvestidoTotal += p; // O dinheiro investido fica na aba investimentos
                 
-                // Limpar campos
                 document.getElementById('v-p').value = "";
                 document.getElementById('v-n').value = "";
                 document.getElementById('v-data').value = "";
@@ -241,7 +233,7 @@
         const f = (v) => v.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
         document.getElementById('display-cofre').innerText = f(cofreGeral);
         document.getElementById('display-video-resumo').innerText = f(ganhoVideos);
-        document.getElementById('display-invest-resumo').innerText = f(ganhoInvestimentosTotal);
+        document.getElementById('display-invest-resumo').innerText = f(capitalInvestidoTotal);
         
         const qA = parseInt(document.getElementById('q-a').value) || 0;
         const qB = parseInt(document.getElementById('q-b').value) || 0;
@@ -251,7 +243,7 @@
         if(currentUser) {
             localStorage.setItem(currentUser + '_cofre', cofreGeral);
             localStorage.setItem(currentUser + '_videos', ganhoVideos);
-            localStorage.setItem(currentUser + '_ganho_inv', ganhoInvestimentosTotal);
+            localStorage.setItem(currentUser + '_cap_inv', capitalInvestidoTotal);
             localStorage.setItem(currentUser + '_history', JSON.stringify(historicoInvest));
             localStorage.setItem(currentUser + '_qa', qA);
             localStorage.setItem(currentUser + '_qb', qB);
@@ -265,16 +257,16 @@
             <div style="background:#1a1a1a; padding:15px; border-radius:15px; margin-bottom:10px; border:1px solid #333">
                 <div style="display:flex; justify-content:space-between; align-items:center">
                     <span style="font-size:0.7rem; color:#888; text-transform:capitalize;">${item.data}</span>
-                    <span style="color:var(--neon); font-weight:bold;">+ R$ ${item.lucro.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
+                    <span style="color:var(--neon); font-weight:bold;">Lucro Gerado: R$ ${item.lucro.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
                 </div>
-                <div style="font-size:0.75rem; color:#555; margin-top:5px;">Investido: R$ ${item.investido.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</div>
+                <div style="font-size:0.75rem; color:var(--blue); margin-top:5px;">Capital Aplicado: R$ ${item.investido.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</div>
             </div>
         `).join('');
     }
 
     function zerarSaldo() {
         if(confirm("Deseja apagar os dados desta conta?")) {
-            cofreGeral = 0; ganhoVideos = 0; ganhoInvestimentosTotal = 0; historicoInvest = [];
+            cofreGeral = 0; ganhoVideos = 0; capitalInvestidoTotal = 0; historicoInvest = [];
             update(); renderHistorico();
         }
     }
@@ -299,4 +291,5 @@
     }
 </script>
 </body>
-</html>
+    </html>
+    
