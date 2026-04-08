@@ -16,7 +16,6 @@
         .auth-card { background: #111; padding: 30px; border-radius: 30px; width: 90%; max-width: 380px; text-align: center; border: 1px solid #222; }
         .auth-card input { width: 100%; padding: 15px; margin: 10px 0; border-radius: 12px; border: 1px solid #333; background: #000; color: white; outline: none; }
         
-        .input-mask { -webkit-text-security: disc; text-security: disc; }
         .btn-auth { width: 100%; padding: 18px; border-radius: 12px; border: none; background: var(--neon); color: #000; font-weight: bold; cursor: pointer; }
 
         #app-content { display: none; }
@@ -48,8 +47,8 @@
         .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #555; font-size: 0.65rem; font-weight: bold; }
         .nav-item.active { color: var(--neon); }
         
-        .hist-item { background:#1a1a1a; padding:15px; border-radius:15px; margin-bottom:12px; border:1px solid #333; }
-        .hist-tag { font-size: 0.6rem; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; font-weight: bold; margin-bottom: 5px; display: inline-block; }
+        .hist-item { background:#1a1a1a; padding:15px; border-radius:15px; margin-bottom:12px; border: 1px solid #333; }
+        .data-info { font-size: 0.75rem; margin-bottom: 4px; display: flex; justify-content: space-between; }
     </style>
 </head>
 <body>
@@ -57,23 +56,22 @@
 <div id="auth-screen">
     <div class="auth-card">
         <h1 style="color: var(--neon); margin-bottom: 20px;">Finance PRO</h1>
-        <input type="text" id="auth-user" placeholder="ID de Usuário" required>
-        <input type="text" id="auth-pass" class="input-mask" placeholder="Chave de Acesso" required>
-        <button class="btn-auth" onclick="handleAuth()">ENTRAR NO PAINEL</button>
+        <input type="text" id="auth-user" placeholder="ID de Usuário">
+        <input type="password" id="auth-pass" placeholder="Senha">
+        <button class="btn-auth" onclick="handleAuth()">ENTRAR</button>
     </div>
 </div>
 
 <div id="app-content">
     <div class="container">
-        <h2 style="text-align: center; color: #fff; font-size: 0.9rem;">Conta: <span id="user-display" style="color: var(--neon);"></span></h2>
+        <h2 style="text-align: center; font-size: 0.8rem; color: #888;">CONTA: <span id="user-display" style="color: var(--neon);"></span></h2>
 
         <div id="page-geral" class="page active">
             <div class="card border-total">
                 <span class="label" style="color: var(--neon);">Saldo Disponível (Lucros)</span>
                 <div style="font-size: 2.2rem; font-weight: 800;">R$ <span id="display-cofre">0,00</span></div>
-                <button class="btn-reset" onclick="zerarSaldo()">LIMPAR DADOS DA CONTA</button>
+                <button class="btn-reset" onclick="zerarSaldo()">LIMPAR DADOS</button>
             </div>
-
             <div class="row">
                 <div class="card border-video">
                     <span class="label" style="color: var(--red);">Ganhos Vídeos</span>
@@ -84,64 +82,48 @@
                     <div style="font-size: 1.1rem;">R$ <span id="display-invest-resumo">0,00</span></div>
                 </div>
             </div>
-
             <div class="card border-equipe">
-                <span class="label" style="color: var(--purple);">Membros na Rede</span>
-                <div style="font-size: 1.8rem;"><span id="display-pessoas">0</span></div>
+                <span class="label" style="color: var(--purple);">Equipe Total</span>
+                <div style="font-size: 1.5rem;"><span id="display-pessoas">0</span> membros</div>
             </div>
-            
-            <button onclick="logout()" style="background:#222; color:#fff; border:none; padding:15px; border-radius:12px; width:100%; font-weight: bold;">Sair / Trocar Usuário</button>
+            <button onclick="logout()" style="background:#222; color:#fff; border:none; padding:15px; border-radius:12px; width:100%; font-weight: bold;">SAIR / TROCAR CONTA</button>
         </div>
 
         <div id="page-invest" class="page">
             <div class="card border-invest">
                 <span class="label">Novo Investimento</span>
-                
-                <div class="input-box">
-                    <label>DATA DE INÍCIO</label>
-                    <input type="date" id="v-data">
-                </div>
-
-                <div class="input-box"><label>VALOR A INVESTIR (CAPITAL)</label><input type="number" id="v-p" oninput="calcularPrevia()"></div>
+                <div class="input-box"><label>DATA DE INÍCIO</label><input type="date" id="v-data"></div>
+                <div class="input-box"><label>VALOR INVESTIDO (R$)</label><input type="number" id="v-p" oninput="calcularPrevia()"></div>
                 <div class="row">
-                    <div class="input-box"><label>TAXA TOTAL (%)</label><input type="number" id="v-i" oninput="calcularPrevia()"></div>
-                    <div class="input-box"><label>DIAS PARA RETORNO</label><input type="number" id="v-n" oninput="calcularPrevia()" value="1"></div>
+                    <div class="input-box"><label>TAXA (%)</label><input type="number" id="v-i" oninput="calcularPrevia()"></div>
+                    <div class="input-box"><label>PRAZO (DIAS)</label><input type="number" id="v-n" oninput="calcularPrevia()" value="1"></div>
                 </div>
 
                 <div id="previa-box">
-                    <span class="label" style="color: var(--neon);">Previsão de Saída</span>
-                    <div id="previa-data-saida" style="font-weight: bold; margin-bottom: 10px; color: #fff;">-</div>
-                    <div style="display: flex; justify-content: space-around;">
-                        <div>
-                            <span class="label">Investimento</span>
-                            <div id="previa-cap" style="color: var(--blue); font-weight: bold;">R$ 0,00</div>
-                        </div>
-                        <div>
-                            <span class="label">Lucro</span>
-                            <div id="previa-lucro" style="color: var(--neon); font-weight: bold;">R$ 0,00</div>
-                        </div>
-                    </div>
+                    <div style="color: var(--blue); font-size: 0.7rem; margin-bottom: 5px;">PREVISÃO DE RETORNO:</div>
+                    <div id="previa-data-saida" style="font-weight: bold; margin-bottom: 8px;">-</div>
+                    <div style="font-size: 1.2rem; color: var(--neon); font-weight: bold;">+ R$ <span id="previa-lucro">0,00</span></div>
                 </div>
 
-                <button class="btn-save" style="background: var(--blue); color: white;" onclick="saveToCofre('invest')">CONFIRMAR REGISTRO</button>
+                <button class="btn-save" style="background: var(--blue); color: white;" onclick="saveToCofre('invest')">REGISTRAR INVESTIMENTO</button>
                 
-                <h3 style="font-size: 0.8rem; margin-top: 20px; color: var(--blue);">HISTÓRICO COMPLETO:</h3>
+                <h3 style="font-size: 0.75rem; margin-top: 25px; color: var(--blue);">HISTÓRICO DE MOVIMENTAÇÕES:</h3>
                 <div id="history-items"></div>
             </div>
         </div>
 
         <div id="page-videos" class="page">
             <div class="card border-video">
-                <span class="label">Ganhos por Visualização</span>
-                <div class="input-box"><label>QTD VÍDEOS</label><input type="number" id="vid-qtd"></div>
-                <div class="input-box"><label>VALOR POR VÍDEO (R$)</label><input type="number" id="vid-val" step="0.01"></div>
-                <button class="btn-save" style="background: var(--red); color: white;" onclick="saveToCofre('video')">ADICIONAR AO SALDO</button>
+                <span class="label">Ganhos Vídeos</span>
+                <div class="input-box"><label>QUANTIDADE</label><input type="number" id="vid-qtd"></div>
+                <div class="input-box"><label>VALOR UNIDADE</label><input type="number" id="vid-val" step="0.01"></div>
+                <button class="btn-save" style="background: var(--red); color: white;" onclick="saveToCofre('video')">ADICIONAR</button>
             </div>
         </div>
 
         <div id="page-equipe" class="page">
             <div class="card border-equipe">
-                <span class="label">Minhas Equipes</span>
+                <span class="label">Gerenciar Equipe</span>
                 <div class="input-box"><label>EQUIPE A</label><input type="number" id="q-a" oninput="update()"></div>
                 <div class="input-box"><label>EQUIPE B</label><input type="number" id="q-b" oninput="update()"></div>
                 <div class="input-box"><label>EQUIPE C</label><input type="number" id="q-c" oninput="update()"></div>
@@ -164,15 +146,16 @@
     let capitalInvestidoTotal = 0; 
     let historicoInvest = [];
 
-    const formatarData = (data) => {
-        const opcoes = { weekday: 'long', day: '2-digit', month: '2-digit' };
-        return data.toLocaleDateString('pt-BR', opcoes);
+    const formatarD = (data) => {
+        const dias = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+        const d = data.getDate().toString().padStart(2, '0');
+        const m = (data.getMonth() + 1).toString().padStart(2, '0');
+        return `${d}/${m} (${dias[data.getDay()]})`;
     }
 
     function handleAuth() {
         const user = document.getElementById('auth-user').value.trim().toLowerCase();
-        if(!user) { alert("Digite um ID"); return; }
-        
+        if(!user) return alert("Digite um ID");
         currentUser = user;
         localStorage.setItem('finance_session', user);
         document.getElementById('user-display').innerText = user.toUpperCase();
@@ -200,16 +183,12 @@
         const box = document.getElementById('previa-box');
 
         if(p > 0 && tx > 0) {
-            const lucroTotal = p * (tx/100) * n;
-            
-            let dataInicio = dataInput ? new Date(dataInput + 'T12:00:00') : new Date();
-            let dataSaida = new Date(dataInicio);
-            dataSaida.setDate(dataInicio.getDate() + n);
+            let dInic = dataInput ? new Date(dataInput + 'T12:00:00') : new Date();
+            let dSair = new Date(dInic);
+            dSair.setDate(dInic.getDate() + n);
 
-            document.getElementById('previa-data-saida').innerText = formatarData(dataSaida);
-            document.getElementById('previa-cap').innerText = "R$ " + p.toLocaleString('pt-BR', {minimumFractionDigits: 2});
-            document.getElementById('previa-lucro').innerText = "R$ " + lucroTotal.toLocaleString('pt-BR', {minimumFractionDigits: 2});
-            document.getElementById('previa-total').innerText = "R$ " + (p + lucroTotal).toLocaleString('pt-BR', {minimumFractionDigits: 2});
+            document.getElementById('previa-data-saida').innerText = formatarD(dSair);
+            document.getElementById('previa-lucro').innerText = (p * (tx/100) * n).toLocaleString('pt-BR', {minimumFractionDigits: 2});
             box.style.display = "block";
         } else {
             box.style.display = "none";
@@ -218,41 +197,31 @@
 
     function saveToCofre(tipo) {
         if (tipo === 'video') {
-            const total = (parseFloat(document.getElementById('vid-qtd').value) || 0) * (parseFloat(document.getElementById('vid-val').value) || 0);
-            cofreGeral += total; 
-            ganhoVideos += total;
+            const v = (parseFloat(document.getElementById('vid-qtd').value) || 0) * (parseFloat(document.getElementById('vid-val').value) || 0);
+            cofreGeral += v; ganhoVideos += v;
         } else if (tipo === 'invest') {
             const p = parseFloat(document.getElementById('v-p').value) || 0;
             const tx = parseFloat(document.getElementById('v-i').value) || 0;
             const n = parseInt(document.getElementById('v-n').value) || 1;
-            const dataInput = document.getElementById('v-data').value;
-            
-            if(p > 0 && tx > 0) {
-                const lucroTotal = p * (tx/100) * n;
-                
-                let dataInicio = dataInput ? new Date(dataInput + 'T12:00:00') : new Date();
-                let dataSaida = new Date(dataInicio);
-                dataSaida.setDate(dataInicio.getDate() + n);
+            if(p <= 0 || tx <= 0) return;
 
-                historicoInvest.unshift({ 
-                    investido: p, 
-                    lucro: lucroTotal, 
-                    inicio: formatarData(dataInicio),
-                    saida: formatarData(dataSaida)
-                });
-                
-                capitalInvestidoTotal += p; 
-                cofreGeral += lucroTotal;    
-                
-                document.getElementById('v-p').value = "";
-                document.getElementById('v-i').value = "";
-                document.getElementById('v-n').value = "1";
-                document.getElementById('v-data').value = "";
-                document.getElementById('previa-box').style.display = "none";
-            }
+            let dInic = document.getElementById('v-data').value ? new Date(document.getElementById('v-data').value + 'T12:00:00') : new Date();
+            let dSair = new Date(dInic);
+            dSair.setDate(dInic.getDate() + n);
+
+            const lucro = p * (tx/100) * n;
+            historicoInvest.unshift({ 
+                investido: p, lucro: lucro, 
+                inicio: formatarD(dInic), sair: formatarD(dSair) 
+            });
+            capitalInvestidoTotal += p; cofreGeral += lucro;
+            
+            document.getElementById('v-p').value = "";
+            document.getElementById('v-i').value = "";
+            document.getElementById('v-data').value = "";
+            document.getElementById('previa-box').style.display = "none";
         }
-        update();
-        renderHistorico();
+        update(); renderHistorico();
     }
 
     function update() {
@@ -261,66 +230,40 @@
         document.getElementById('display-video-resumo').innerText = f(ganhoVideos);
         document.getElementById('display-invest-resumo').innerText = f(capitalInvestidoTotal);
         
-        const qA = parseInt(document.getElementById('q-a').value) || 0;
-        const qB = parseInt(document.getElementById('q-b').value) || 0;
-        const qC = parseInt(document.getElementById('q-c').value) || 0;
-        document.getElementById('display-pessoas').innerText = qA + qB + qC;
+        const qTot = (parseInt(document.getElementById('q-a').value) || 0) + (parseInt(document.getElementById('q-b').value) || 0) + (parseInt(document.getElementById('q-c').value) || 0);
+        document.getElementById('display-pessoas').innerText = qTot;
 
         if(currentUser) {
             localStorage.setItem(currentUser + '_cofre', cofreGeral);
             localStorage.setItem(currentUser + '_videos', ganhoVideos);
             localStorage.setItem(currentUser + '_cap_inv', capitalInvestidoTotal);
             localStorage.setItem(currentUser + '_history', JSON.stringify(historicoInvest));
-            localStorage.setItem(currentUser + '_qa', qA);
-            localStorage.setItem(currentUser + '_qb', qB);
-            localStorage.setItem(currentUser + '_qc', qC);
+            localStorage.setItem(currentUser + '_qa', document.getElementById('q-a').value);
+            localStorage.setItem(currentUser + '_qb', document.getElementById('q-b').value);
+            localStorage.setItem(currentUser + '_qc', document.getElementById('q-c').value);
         }
     }
 
     function renderHistorico() {
-        const container = document.getElementById('history-items');
-        container.innerHTML = historicoInvest.map((item, i) => `
+        document.getElementById('history-items').innerHTML = historicoInvest.map(item => `
             <div class="hist-item">
-                <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;">
-                    <div>
-                        <span class="hist-tag" style="background:rgba(0, 212, 255, 0.2); color:var(--blue)">Entrada: ${item.inicio}</span><br>
-                        <span class="hist-tag" style="background:rgba(0, 255, 136, 0.2); color:var(--neon)">Saída: ${item.saida}</span>
-                    </div>
-                    <div style="text-align:right">
-                        <span style="color:var(--neon); font-weight:bold; font-size:1.1rem;">+ R$ ${item.lucro.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
-                    </div>
-                </div>
-                <div style="font-size:0.75rem; color:#888; border-top: 1px solid #222; padding-top:8px;">
-                    Capital Investido: <span style="color:var(--blue)">R$ ${item.investido.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
+                <div class="data-info" style="color:#888"><span>Entrada:</span> <b>${item.inicio}</b></div>
+                <div class="data-info" style="color:var(--neon); margin-bottom:8px"><span>Liberação:</span> <b>${item.sair}</b></div>
+                <div style="display:flex; justify-content:space-between; border-top:1px solid #222; padding-top:8px">
+                    <span style="font-size:0.7rem; color:#666">Capital: R$ ${item.investido.toFixed(2)}</span>
+                    <span style="color:var(--neon); font-weight:bold">+ R$ ${item.lucro.toFixed(2)}</span>
                 </div>
             </div>
         `).join('');
     }
 
-    function zerarSaldo() {
-        if(confirm("Deseja apagar permanentemente os dados desta conta?")) {
-            cofreGeral = 0; ganhoVideos = 0; capitalInvestidoTotal = 0; historicoInvest = [];
-            update(); renderHistorico();
-        }
-    }
-
-    function tab(id, el) {
-        document.querySelectorAll('.page, .nav-item').forEach(x => x.classList.remove('active'));
-        document.getElementById('page-' + id).classList.add('active');
-        el.classList.add('active');
-    }
-
-    function logout() {
-        localStorage.removeItem('finance_session');
-        location.reload();
-    }
-
-    window.onload = () => {
-        const lastUser = localStorage.getItem('finance_session');
-        if(lastUser) {
-            document.getElementById('auth-user').value = lastUser;
-            handleAuth();
-        }
+    function zerarSaldo() { if(confirm("Apagar tudo desta conta?")) { cofreGeral=0; ganhoVideos=0; capitalInvestidoTotal=0; historicoInvest=[]; update(); renderHistorico(); } }
+    function tab(id, el) { document.querySelectorAll('.page, .nav-item').forEach(x => x.classList.remove('active')); document.getElementById('page-'+id).classList.add('active'); el.classList.add('active'); }
+    function logout() { localStorage.removeItem('finance_session'); location.reload(); }
+    
+    window.onload = () => { 
+        const s = localStorage.getItem('finance_session'); 
+        if(s) { document.getElementById('auth-user').value = s; handleAuth(); } 
     }
 </script>
 </body>
