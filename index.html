@@ -41,6 +41,9 @@
         .btn-save { width: 100%; background: var(--neon); color: #000; border: none; padding: 18px; border-radius: 15px; font-weight: 800; cursor: pointer; }
         .btn-reset { width: 100%; background: transparent; color: var(--red); border: 1px solid var(--red); padding: 10px; border-radius: 12px; font-weight: bold; cursor: pointer; margin-top: 10px; font-size: 0.8rem; }
         
+        /* Estilo da Prévia */
+        #previa-box { background: rgba(0, 212, 255, 0.1); border: 1px dashed var(--blue); padding: 15px; border-radius: 15px; margin-bottom: 15px; text-align: center; display: none; }
+
         .nav { position: fixed; bottom: 0; width: 100%; height: 85px; background: rgba(0,0,0,0.9); backdrop-filter: blur(10px); display: flex; border-top: 1px solid #222; z-index: 1000; }
         .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #555; font-size: 0.65rem; font-weight: bold; }
         .nav-item.active { color: var(--neon); }
@@ -74,7 +77,7 @@
                     <div style="font-size: 1.1rem;">R$ <span id="display-video-resumo">0,00</span></div>
                 </div>
                 <div class="card border-invest">
-                    <span class="label" style="color: var(--blue);">Saldo Invest.</span>
+                    <span class="label" style="color: var(--blue);">Ganhos Invest.</span>
                     <div style="font-size: 1.1rem;">R$ <span id="display-invest-resumo">0,00</span></div>
                 </div>
             </div>
@@ -84,19 +87,28 @@
                 <div style="font-size: 1.8rem;"><span id="display-pessoas">0</span></div>
             </div>
             
-            <button onclick="logout()" style="background:#222; color:#fff; border:none; padding:15px; border-radius:12px; width:100%; font-weight: bold;">Trocar de Usuário / Sair</button>
+            <button onclick="logout()" style="background:#222; color:#fff; border:none; padding:15px; border-radius:12px; width:100%; font-weight: bold;">Sair / Trocar Usuário</button>
         </div>
 
         <div id="page-invest" class="page">
             <div class="card border-invest">
-                <span class="label">Novo Investimento</span>
-                <div class="input-box"><label>VALOR (R$)</label><input type="number" id="v-p"></div>
+                <span class="label">Simular Investimento</span>
+                <div class="input-box"><label>VALOR A INVESTIR (R$)</label><input type="number" id="v-p" oninput="calcularPrevia()"></div>
                 <div class="row">
-                    <div class="input-box"><label>TAXA (%)</label><input type="number" id="v-i"></div>
-                    <div class="input-box"><label>DIAS</label><input type="number" id="v-n"></div>
+                    <div class="input-box"><label>TAXA AO DIA (%)</label><input type="number" id="v-i" oninput="calcularPrevia()"></div>
+                    <div class="input-box"><label>DURAÇÃO (DIAS)</label><input type="number" id="v-n" oninput="calcularPrevia()"></div>
                 </div>
-                <button class="btn-save" style="background: var(--blue); color: white;" onclick="saveToCofre('invest')">SALVAR</button>
-                <div id="history-items" style="margin-top: 15px;"></div>
+
+                <div id="previa-box">
+                    <span class="label" style="color: var(--blue);">Prévia do Lucro</span>
+                    <div id="previa-valor" style="font-size: 1.5rem; font-weight: bold; color: var(--neon);">R$ 0,00</div>
+                    <small style="color: #888;">Retorno total: <span id="previa-total">R$ 0,00</span></small>
+                </div>
+
+                <button class="btn-save" style="background: var(--blue); color: white;" onclick="saveToCofre('invest')">CONFIRMAR INVESTIMENTO</button>
+                
+                <h3 style="font-size: 0.8rem; margin-top: 20px; color: var(--blue);">HISTÓRICO DE LUCROS:</h3>
+                <div id="history-items"></div>
             </div>
         </div>
 
@@ -131,6 +143,7 @@
     let currentUser = "";
     let cofreGeral = 0;
     let ganhoVideos = 0;
+    let ganhoInvestimentosTotal = 0; // Novo: para somar apenas os lucros
     let historicoInvest = [];
 
     function handleAuth() {
@@ -141,9 +154,9 @@
         localStorage.setItem('finance_session', user);
         document.getElementById('user-display').innerText = user.toUpperCase();
         
-        // Carrega dados específicos desta conta
         cofreGeral = parseFloat(localStorage.getItem(user + '_cofre')) || 0;
         ganhoVideos = parseFloat(localStorage.getItem(user + '_videos')) || 0;
+        ganhoInvestimentosTotal = parseFloat(localStorage.getItem(user + '_ganho_inv')) || 0;
         historicoInvest = JSON.parse(localStorage.getItem(user + '_history')) || [];
         
         document.getElementById('q-a').value = localStorage.getItem(user + '_qa') || 0;
@@ -156,6 +169,22 @@
         renderHistorico();
     }
 
+    function calcularPrevia() {
+        const p = parseFloat(document.getElementById('v-p').value) || 0;
+        const tx = parseFloat(document.getElementById('v-i').value) || 0;
+        const n = parseInt(document.getElementById('v-n').value) || 0;
+        const box = document.getElementById('previa-box');
+
+        if(p > 0 && tx > 0 && n > 0) {
+            const lucro = p * (tx/100) * n;
+            document.getElementById('previa-valor').innerText = "R$ " + lucro.toLocaleString('pt-BR', {minimumFractionDigits: 2});
+            document.getElementById('previa-total').innerText = "R$ " + (p + lucro).toLocaleString('pt-BR', {minimumFractionDigits: 2});
+            box.style.display = "block";
+        } else {
+            box.style.display = "none";
+        }
+    }
+
     function saveToCofre(tipo) {
         if (tipo === 'video') {
             const total = (parseFloat(document.getElementById('vid-qtd').value) || 0) * (parseFloat(document.getElementById('vid-val').value) || 0);
@@ -165,10 +194,28 @@
             const p = parseFloat(document.getElementById('v-p').value) || 0;
             const tx = parseFloat(document.getElementById('v-i').value) || 0;
             const n = parseInt(document.getElementById('v-n').value) || 0;
-            if(p > 0) {
+            
+            if(p > 0 && n > 0) {
                 const lucro = p * (tx/100) * n;
-                historicoInvest.push({ investido: p, lucro: lucro, data: new Date().toLocaleDateString() });
+                const dataAtual = new Date();
+                
+                // Formatação do dia da semana e data
+                const opcoes = { weekday: 'long', day: '2-digit', month: '2-digit' };
+                const dataFormatada = dataAtual.toLocaleDateString('pt-BR', opcoes);
+
+                historicoInvest.unshift({ 
+                    investido: p, 
+                    lucro: lucro, 
+                    data: dataFormatada 
+                });
+                
                 cofreGeral += lucro;
+                ganhoInvestimentosTotal += lucro;
+                
+                // Limpar campos
+                document.getElementById('v-p').value = "";
+                document.getElementById('v-n').value = "";
+                document.getElementById('previa-box').style.display = "none";
             }
         }
         update();
@@ -179,19 +226,17 @@
         const f = (v) => v.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
         document.getElementById('display-cofre').innerText = f(cofreGeral);
         document.getElementById('display-video-resumo').innerText = f(ganhoVideos);
-        
-        const totalInvestido = historicoInvest.reduce((acc, i) => acc + i.investido, 0);
-        document.getElementById('display-invest-resumo').innerText = f(totalInvestido);
+        document.getElementById('display-invest-resumo').innerText = f(ganhoInvestimentosTotal);
         
         const qA = parseInt(document.getElementById('q-a').value) || 0;
         const qB = parseInt(document.getElementById('q-b').value) || 0;
         const qC = parseInt(document.getElementById('q-c').value) || 0;
         document.getElementById('display-pessoas').innerText = qA + qB + qC;
 
-        // Salva na gaveta do usuário logado
         if(currentUser) {
             localStorage.setItem(currentUser + '_cofre', cofreGeral);
             localStorage.setItem(currentUser + '_videos', ganhoVideos);
+            localStorage.setItem(currentUser + '_ganho_inv', ganhoInvestimentosTotal);
             localStorage.setItem(currentUser + '_history', JSON.stringify(historicoInvest));
             localStorage.setItem(currentUser + '_qa', qA);
             localStorage.setItem(currentUser + '_qb', qB);
@@ -202,15 +247,19 @@
     function renderHistorico() {
         const container = document.getElementById('history-items');
         container.innerHTML = historicoInvest.map((item, i) => `
-            <div style="background:#1a1a1a; padding:10px; border-radius:10px; margin-bottom:5px; font-size:0.8rem; border:1px solid #333">
-                <b style="color:var(--blue)">R$ ${item.investido.toFixed(2)}</b> - Lucro: R$ ${item.lucro.toFixed(2)} (${item.data})
+            <div style="background:#1a1a1a; padding:15px; border-radius:15px; margin-bottom:10px; border:1px solid #333">
+                <div style="display:flex; justify-content:space-between; align-items:center">
+                    <span style="font-size:0.7rem; color:#888; text-transform:capitalize;">${item.data}</span>
+                    <span style="color:var(--neon); font-weight:bold;">+ R$ ${item.lucro.toFixed(2)}</span>
+                </div>
+                <div style="font-size:0.75rem; color:#555; margin-top:5px;">Investido: R$ ${item.investido.toFixed(2)}</div>
             </div>
         `).join('');
     }
 
     function zerarSaldo() {
-        if(confirm("Zerar apenas esta conta?")) {
-            cofreGeral = 0; ganhoVideos = 0; historicoInvest = [];
+        if(confirm("Deseja apagar os dados desta conta?")) {
+            cofreGeral = 0; ganhoVideos = 0; ganhoInvestimentosTotal = 0; historicoInvest = [];
             update(); renderHistorico();
         }
     }
